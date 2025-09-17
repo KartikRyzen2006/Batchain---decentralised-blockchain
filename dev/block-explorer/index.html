@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BatChain Explorer – Gotham’s Ledger</title>
+
+    <!-- libs -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+    <!-- Bat-font -->
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+
+    <style>
+        :root{
+            --bat-red  : #e00;
+            --bat-black: #000;
+            --bat-gray : #1a1a1a;
+        }
+        html,body{
+            min-height:100vh;
+            background:var(--bat-black);
+            color:#eee;
+            font-family:'Bebas Neue',sans-serif;
+            letter-spacing:1px;
+        }
+        .container{padding-top:50px;padding-bottom:50px}
+        #page-title{
+            text-align:center;
+            margin-bottom:40px;
+            font-size:3.5rem;
+            color:var(--bat-red);
+            text-shadow:0 0 10px var(--bat-red)
+        }
+        .bat-logo{font-size:3rem;vertical-align:middle;margin-right:8px}
+        .table-title{
+            margin:40px 0 20px 0;
+            text-align:center;
+            color:var(--bat-red);
+            font-size:2rem
+        }
+        .table-bat{
+            background:var(--bat-gray);
+            box-shadow:0 0 15px var(--bat-red);
+            color:#eee;
+            border-collapse:separate
+        }
+        .table-bat td,.table-bat th{border-top:1px solid rgba(238,0,0,.25)}
+        .hash{font-family:monospace;color:var(--bat-red)}
+        #balance-text{
+            text-align:center;
+            margin-top:-20px;
+            margin-bottom:30px;
+            font-size:1.3rem
+        }
+        /* XXL controls */
+        .bat-input,.bat-select{
+            background:var(--bat-black);
+            border:3px solid var(--bat-red);
+            color:#eee;
+            border-radius:0;
+            height:70px;
+            font-size:1.8rem;
+            padding:0 20px
+        }
+        .bat-input:focus,.bat-select:focus{
+            background:var(--bat-black);
+            border-color:var(--bat-red);
+            box-shadow:0 0 18px var(--bat-red)
+        }
+        .btn-bat{
+            background:var(--bat-red);
+            color:var(--bat-black);
+            border:none;
+            border-radius:0;
+            padding:18px 60px;
+            font-weight:bold;
+            letter-spacing:3px;
+            transition:.3s;
+            font-size:2rem
+        }
+        .btn-bat:hover{
+            background:#ff1a1a;
+            box-shadow:0 0 20px var(--bat-red)
+        }
+        .margin-auto{margin:auto;display:block}
+        .btn-search{margin-bottom:50px}
+        .bold{font-weight:700}
+        .no-data-text{color:var(--bat-red);text-align:center}
+    </style>
+</head>
+
+<body ng-app="BlockExplorer" ng-controller="MainController">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <h1 id="page-title"><span class="bat-logo">🦇</span> BatChain Explorer</h1>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                <form ng-submit="search(searchValue)">
+                    <div class="form-group">
+                        <input type="text" class="form-control bat-input" ng-model="searchValue" placeholder="Enter block, transaction or address…">
+                    </div>
+                    <div class="form-group">
+                        <select class="form-control bat-select" ng-model="searchType">
+                            <option value="block">Block Hash</option>
+                            <option value="transaction">Transaction ID</option>
+                            <option value="address">Address</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-bat margin-auto btn-search">Search</button>
+                    <p ng-if="!block && !transaction && !addressData && initialSearchMade" class="no-data-text">
+                        The Bat-Signal returned nothing. Try again.
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-10 offset-md-1">
+                <!-- ===== BLOCK ===== -->
+                <h3 class="table-title" ng-if="block">Block #{{ block.index }}</h3>
+                <table class="table table-bat" ng-if="block">
+                    <tbody>
+                        <tr><td class="bold">Block Hash</td><td class="hash">{{ block.hash }}</td></tr>
+                        <tr><td class="bold">Index</td><td>{{ block.index }}</td></tr>
+                        <tr><td class="bold">Time Stamp</td><td>{{ block.timestamp | date:'medium' }}</td></tr>
+                        <tr><td class="bold">Nonce</td><td>{{ block.nonce }}</td></tr>
+                        <tr><td class="bold">Previous Hash</td><td class="hash">{{ block.previousHash }}</td></tr>
+                        <tr><td class="bold">Number Transactions</td><td>{{ block.transactions.length }}</td></tr>
+                    </tbody>
+                </table>
+
+                <!-- ===== TRANSACTION ===== -->
+                <h3 class="table-title" ng-if="transaction">Transaction</h3>
+                <table class="table table-bat" ng-if="transaction">
+                    <tbody>
+                        <tr><td class="bold">Sender</td><td class="hash">{{ transaction.sender }}</td></tr>
+                        <tr><td class="bold">Recipient</td><td class="hash">{{ transaction.recipient }}</td></tr>
+                        <tr><td class="bold">Amount</td><td>{{ transaction.amount }} KryptoCoin</td></tr>
+                    </tbody>
+                </table>
+
+                <!-- ===== ADDRESS ===== -->
+                <h3 class="table-title" ng-if="addressData">Address</h3>
+                <p id="balance-text" ng-if="addressData">Balance: <strong>{{ addressData.addressBalance }} KryptoCoin</strong></p>
+                <table class="table table-bat" ng-if="addressData">
+                    <thead>
+                        <tr>
+                            <th>Sender</th>
+                            <th>Recipient</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="tx in addressData.addressTransactions">
+                            <td class="hash">{{ tx.sender }}</td>
+                            <td class="hash">{{ tx.recipient }}</td>
+                            <td>{{ tx.amount }} KryptoCoin</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        angular.module('BlockExplorer',[])
+        .controller('MainController',function($scope,$http){
+            $scope.block=$scope.transaction=$scope.addressData=null;
+            $scope.initialSearchMade=false;
+
+            $scope.fetchBlock=function(h){
+                $http.get('/block/'+h).then(r=>{
+                    $scope.block=r.data.block;
+                    $scope.transaction=$scope.addressData=null;
+                });
+            };
+            $scope.fetchTransaction=function(id){
+                $http.get('/transaction/'+id).then(r=>{
+                    $scope.transaction=r.data.transaction;
+                    $scope.block=$scope.addressData=null;
+                });
+            };
+            $scope.fetchAddressData=function(addr){
+                $http.get('/address/'+addr).then(r=>{
+                    $scope.addressData=r.data.addressData;
+                    if(!$scope.addressData.addressTransactions.length)$scope.addressData=null;
+                    $scope.block=$scope.transaction=null;
+                });
+            };
+
+            $scope.search=function(v){
+                $scope.initialSearchMade=true;
+                if($scope.searchType==='block')$scope.fetchBlock(v);
+                else if($scope.searchType==='transaction')$scope.fetchTransaction(v);
+                else if($scope.searchType==='address')$scope.fetchAddressData(v);
+            };
+        });
+    </script>
+</body>
+</html>
